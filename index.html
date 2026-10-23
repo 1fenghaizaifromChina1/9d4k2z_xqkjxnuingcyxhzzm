@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>回忆录</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: "Microsoft YaHei", "SimSun", serif; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: radial-gradient(circle at top, #2b1055 0%, #080818 45%, #05050f 100%); color: #fff; }
+
+canvas { position: fixed; top: 0; left: 0; z-index: 1; pointer-events: none; }
+#canvasNebula { z-index: 1; }
+#canvasFlower { z-index: 2; }
+#canvasHeartParticle { z-index: 3; }
+#canvasFirework { z-index: 4; }
+
+.wrap { position: relative; z-index: 10; width: 100%; height: 100%; }
+.scene { position: absolute; inset: 0; width: 100%; height: 100%; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10; padding: 30px; }
+.scene.active { display: flex !important; }
+
+.title-glow { font-size: 54px; font-weight: 600; letter-spacing: 6px; color: #fff; text-shadow: 0 0 8px #ffc6e5, 0 0 18px #ff9ed2, 0 0 30px #ff7ac6; margin-bottom: 30px; }
+
+.btn { padding: 14px 34px; border: none; border-radius: 999px; font-size: 17px; cursor: pointer; color: #fff; background: linear-gradient(135deg, #ff9ed2, #c792ff); box-shadow: 0 0 12px rgba(255,158,210,0.45), 0 0 24px rgba(199,146,255,0.25); transition: all 0.3s ease; z-index: 20; }
+.btn:hover { transform: translateY(-2px) scale(1.04); }
+
+.input-box { padding: 14px 18px; width: 280px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.12); color: #fff; font-size: 16px; text-align: center; outline: none; margin: 18px 0; }
+.tip-text { font-size: 14px; color: #ffd6ec; min-height: 22px; margin-top: 8px; }
+
+.audio-panel { position: fixed; top: 18px; right: 18px; z-index: 999; display: flex; gap: 10px; align-items: center; background: rgba(0,0,0,0.35); padding: 10px 14px; border-radius: 999px; }
+.volume-slider { width: 100px; cursor: pointer; }
+
+.album-wrap { width: min(960px, 92%); display: flex; align-items: center; justify-content: center; gap: 30px; z-index: 20; }
+.album-img { max-width: 48%; max-height: 62vh; border-radius: 18px; box-shadow: 0 0 24px rgba(255,180,220,0.35); background: #222; }
+.chat-bubble { flex: 1; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,200,230,0.35); border-radius: 20px; padding: 24px; min-height: 180px; color: #fff; line-height: 1.8; z-index: 20; }
+#albumComment { font-size: 17px; }
+.next-album { position: absolute; right: 40px; bottom: 40px; z-index: 30; }
+
+.letter-paper { width: min(720px, 92%); max-height: 72vh; padding: 40px; border-radius: 24px; background: radial-gradient(circle at top left, rgba(255,220,240,0.28), transparent 45%), radial-gradient(circle at bottom right, rgba(255,240,220,0.28), transparent 45%), linear-gradient(180deg, rgba(255,252,253,0.92) 0%, rgba(255,241,248,0.9) 100%); color: #4a2b3c; box-shadow: 0 0 30px rgba(255,180,220,0.45); animation: breath 6s ease-in-out infinite; line-height: 1.9; z-index: 20; display: flex; flex-direction: column; overflow: hidden; }
+@keyframes breath { 0%,100% { transform: scale(0.985); } 50% { transform: scale(1.015); } }
+.letter-content { font-size: 18px; flex: 1; overflow-y: auto; white-space: pre-wrap; padding-right: 8px; }
+.letter-content::-webkit-scrollbar { width: 6px; }
+.letter-content::-webkit-scrollbar-thumb { background: rgba(255,158,210,0.4); border-radius: 3px; }
+.letter-content::-webkit-scrollbar-track { background: rgba(255,255,255,0.3); }
+
+.question-wrap { text-align: center; z-index: 20; }
+.question-title { font-size: 24px; margin-bottom: 30px; color: #fff; text-shadow: 0 0 10px rgba(255,180,220,0.6); }
+.opt-btn { width: 220px; margin: 0 14px; }
+.question-progress { margin-top: 20px; font-size: 15px; color: #ffd6ec; }
+
+.mask { position: fixed; inset: 0; background: rgba(0,0,0,0.72); z-index: 200; display: none; align-items: center; justify-content: center; }
+.mask.show { display: flex; }
+.pop-box { width: min(620px, 92%); padding: 36px; border-radius: 24px; background: radial-gradient(circle at top left, rgba(255,220,240,0.4), transparent 45%), linear-gradient(180deg, #fff8fb 0%, #fff0f6 100%); color: #4a2b3c; box-shadow: 0 0 40px rgba(255,180,220,0.5); transform: scale(0.3); opacity: 0; transition: transform 0.6s cubic-bezier(0.34,1.56,0.64,1), opacity 0.6s ease; animation: breath 6s ease-in-out infinite; z-index: 210; }
+.pop-box.show { transform: scale(1); opacity: 1; }
+.pop-box.hide { transform: scale(0.3); opacity: 0; transition: all 0.5s ease; }
+.pop-text { min-height: 180px; line-height: 1.8; font-size: 17px; position: relative; overflow: hidden; }
+.shine-light { position: absolute; top: 0; left: -120%; width: 80%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,210,225,0.6), transparent); transition: left 1.2s ease; }
+.shine-light.active { left: 120%; }
+.pop-btn-row { margin-top: 24px; display: flex; justify-content: space-between; gap: 16px; }
+
+.promise-item { font-size: 22px; margin: 18px 0; color: #e8f0ff; text-shadow: 0 0 10px rgba(180,210,255,0.6); opacity: 0; transform: translateY(14px); transition: all 0.7s ease; z-index: 20; }
+.promise-item.show { opacity: 1; transform: translateY(0); }
+
+.track-node { cursor: pointer; padding: 18px 24px; margin: 12px 0; border-radius: 16px; background: rgba(255,200,230,0.16); border: 1px solid rgba(255,200,230,0.35); width: min(560px, 92%); text-align: center; font-size: 18px; transition: 0.3s ease; z-index: 20; }
+.track-node:hover { background: rgba(255,200,230,0.3); transform: scale(1.03); }
+
+#scene6 h2 { font-size: 30px; margin-bottom: 40px; color: #fff; text-shadow: 0 0 12px rgba(255,180,220,0.7); z-index: 20; }
+#finalWords { font-size: 22px; color: #fff; text-shadow: 0 0 10px rgba(255,180,220,0.7); z-index: 20; }
+
+.cursor { display: inline-block; width: 8px; height: 1.1em; background: #4a2b3c; margin-left: 4px; animation: blink 0.7s infinite; }
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+</style>
+</head>
+<body>
+
+<canvas id="canvasNebula"></canvas>
+<canvas id="canvasFlower"></canvas>
+<canvas id="canvasHeartParticle"></canvas>
+<canvas id="canvasFirework"></canvas>
+
+<div class="audio-panel">
+  <button id="bgmToggle" class="btn">BGM</button>
+  <input id="volumeSlider" type="range" min="0" max="1" step="0.01" value="0.6" class="volume-slider" />
+</div>
+
+<audio id="bgmAudio" loop preload="auto">
+  <source src="bgm.m4a" type="audio/mp4" />
+</audio>
+<audio id="paperAudio" preload="auto">
+  <source src="paper.m4a" type="audio/mp4" />
+</audio>
+
+<div class="wrap">
+  <section class="scene active" id="scene0">
+    <h1 class="title-glow">回忆录</h1>
+    <p style="margin-bottom:6px;color:#ffd6ec">请输入专属暗号，开启这段回忆</p>
+    <input id="secretInput" class="input-box" placeholder="输入暗号" />
+    <button id="secretBtn" class="btn">确认</button>
+    <div id="secretTip" class="tip-text"></div>
+    <div class="tip-text">✨ 点击页面可开启背景音乐</div>
+  </section>
+
+  <section class="scene" id="scene1">
+    <div class="album-wrap">
+      <img id="albumImg" class="album-img" alt="相册照片" />
+      <div class="chat-bubble">
+        <div id="albumComment"></div>
+        <span class="cursor" id="albumCursor" style="display:none"></span>
+      </div>
+    </div>
+    <button id="albumNext" class="btn next-album">Next</button>
+  </section>
+
+  <section class="scene" id="scene2">
+    <div class="letter-paper">
+      <div id="letterText" class="letter-content"></div>
+      <span class="cursor" id="letterCursor" style="display:none"></span>
+    </div>
+    <button id="letterNext" class="btn next-album">继续</button>
+  </section>
+
+  <section class="scene" id="scene3">
+    <div class="question-wrap">
+      <div id="qTitle" class="question-title"></div>
+      <button id="optA" class="btn opt-btn">选项A</button>
+      <button id="optB" class="btn opt-btn">选项B</button>
+      <div id="qProgress" class="question-progress"></div>
+    </div>
+  </section>
+
+  <section class="scene" id="scene4">
+    <div id="promiseList"></div>
+    <button id="promiseNext" class="btn" style="margin-top:30px;">下一页</button>
+  </section>
+
+  <section class="scene" id="scene5">
+    <div id="trackList"></div>
+    <button id="trackNext" class="btn" style="margin-top:30px;">奔赴烟花</button>
+  </section>
+
+  <section class="scene" id="scene6">
+    <h2>点击屏幕任意位置，绽放烟花</h2>
+    <p id="finalWords"></p>
+  </section>
+</div>
+
+<div id="mask" class="mask">
+  <div id="popBox" class="pop-box">
+    <div class="pop-text">
+      <span id="popText"></span>
+      <span class="cursor" id="popCursor"></span>
+      <div id="shineLight" class="shine-light"></div>
+    </div>
+    <div class="pop-btn-row">
+      <button id="popClose" class="btn pop-close">收好这份心里话</button>
+      <button id="popNext" class="btn pop-next" style="margin-left:auto;">Next</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ==================== 配置区：只改这里 ==================== */
+const CONFIG = {
+  secretCode: "gcyxhzzm",
+  typeSpeed: 200,
+  albumList: [
+    { img: "img1.png", comment: "小可爱，我做这个网页可不容易了，你一定要看完😜" },
+    { img: "img2.png", comment: "好可爱呀，世界上怎么会有这么可爱的小女孩😊" },
+    { img: "img3.png", comment: "小昭媚好可爱呀，永远是我心中的crush😘" },
+    { img: "img4.png", comment: "想跟我的白月光合照，可以吗？求求🙏" },
+    { img: "img5.png", comment: "你还记得我给你写的那封信吗？你说好肉麻😉" }, 
+    { img: "img6.png", comment: "我又想起来我剪的那个视频了，虽然一股子人机味，但倾注了我好多心血的，你还问“怎么给我找了个男朋友”来着😂" },
+    { img: "img7.png", comment: "你还记得咱们的那个约定吗？说高中三年不谈恋爱，(ˉ▽￣～) 切~~，我高考之后一定追你追到底！！！😜你看这张照片，当时你直接发给丨只鱼说我想和他做🤣，好可爱呀" },
+    { img: "img8.png", comment: "这个是写给我的吗？❤️" },
+    { img: "img9.png", comment: "我的那个手机丢了，找不见我给你表白时候的照片了，但回想起来，那一定是我目前经历过的一个最美好的夜晚💕，我想和你过更多那样的夜晚(^人^)😝，当时你说你的脸都熟透了呢🍎" }, 
+    { img: "img10.png", comment: "小昭媚，我的18岁生日可以让你来陪我过吗？🎂" },
+
+
+
+  ],
+  letterText: `曾昭媚同学，首先感谢你高二以来给我的陪伴，我已经非常非常知足了，谢谢你😊。其次，这可能是我在高中期间给你的最后一封信了。我从初二到高二以来所有想说的话都想在这里说出来，至于2027年到2028年的心里话，可能要到高考以后再说了，那时候我要光明正大的说出我的心意，正大光明的和你选同一所院校，正大光明的和你谈一场轰轰烈烈的恋爱（当然，我不知道你会不会接受我，那我也要试试😉）。
+为什么说这是高中期间最后一封信呢？其实没什么告别的意思，我只是发现我太喜欢你了，以至于我现在不能将注意力从你的身上移开，我发现我渐渐有点迷失自我了，初衷原本是想帮你提高学习成绩，我们共同进步，但后来，我发现我越来越把握不住分寸，天天去找你，想尽各种办法逗你开心，我不喜欢这样的郭宸严，你可能也不喜欢吧😔。先说一声对不起，虽然都是正常交流，但我打扰你的确有点过头了。我不应该因为想要满足我的个人欲望而不考虑你的感受，但我是真心真意地想让你变好，想看着你将成绩提高🫡，加油。
+所以我想写这样一封信，让我的期盼具象化，让我不再那么像米考伯，可能将这一切都向你说出来，我就能保持住原来的节奏，向着真正让你喜欢的那个方向发展。我现在几乎天天做梦梦到你，每节课都想着下课怎么去逗你开心，无论教室里或教室外发生半点风吹草动，我甚至会直接不自觉的看你，我知道，都是因为我太喜欢你了。信的内容如下：
+“小曾同学，我想了很久，但还是决定用最朴素的语言说出这些话，感谢你这3年来给我的支持，帮助，和对于爱情给予我的心理上的满足。不过我再说声对不起，我天天找你，想让你陪我聊天，放假期间也天天晚上等你，打扰你，我想让你休息好，又这样打扰，你应该很累吧，在你答应成为我女朋友之前，我不会再像以前那样打扰你了。还有你的成绩进步了，希望你能保持住，无论我们以后是否在一起，我都希望你无论身处何地都能够拥有自己的一席之地。当然，我以后要更加专注自己的学习了，可能更少的去找你了，不过我会一直希望并且愿意陪你酣畅淋漓地聊个通宵，给你辅导功课，陪你一步一步把成绩提上去，还有陪你在王者峡谷里面转悠转悠......加油，我永远相信你！！！”
+就先写到这吧，不知道怎么地哭出来了，男生在女生面前哭应该很丢人吧🥲对了，后面还有我给你准备的烟花秀，虽然特效有点简洁，但......就先到这里吧。👋再次感谢你，让我拥有了一个完整而又美好的青春。😝——喜欢曾昭媚的郭宸严`,
+  questionList: [
+    {
+      title: "你愿意和我前往同一所大学并开启一段更加美好的时光吗？😉,行啦，其实你选的什么我看不到啦，不过每个选项后面都有我想说的话😝",
+      optA: "是",
+      textA: "哇塞😍，你选了是耶，我以后一定要对你好好的，绝对不让你受委屈，让你当全天下最幸福的女孩子，我们一起加油！",
+      optB: "否",
+      textB: "你选了否呀，那也没事，我的初衷就是希望你能够天天开心，快快乐乐的，奥对，还要健健康康的，加油！！！我相信你"
+    }
+  ],
+  promiseList: [
+    "如果可以，想和你一起看落日余晖",
+    "如果可以，想分享生活里所有细碎小事",
+    "如果可以，想把独一份的偏爱都留给你",
+    "如果可以，未来的很多时刻，希望身边有你"
+  ],
+  trackList: [
+    { title: "初见", content: "初见小昭媚的那一刻，心底悄悄泛起涟漪。" },
+    { title: "聊天", content: "每次聊天，都在悄悄期待小可爱的回复。" },
+    { title: "心动", content: "不知不觉，我的目光总会不自觉望向你。" },
+    { title: "喜欢", content: "慢慢发现，曾昭媚！！！我已经很喜欢你了！！！！" },
+    { title: "深思", content: "众里寻Ta千百度，蓦然回首，那人却在灯火阑珊处" }
+
+  ],
+  fireWords: ["曾昭媚我爱你！！","很高兴遇见你", "曾昭媚我喜欢你", "想陪你走过往后的日子", "曾昭媚是我的星光", "这份心意，只为你", "加油"],
+  finalText: "如果你愿意，我会坚定的陪你走下去，陪你去看22世纪的烟花与晚霞"
+};
+
+const $ = s => document.querySelector(s);
+const sceneList = ["scene0","scene1","scene2","scene3","scene4","scene5","scene6"];
+let currentSceneIndex = 0, albumIndex = 0, qIndex = 0, typingLock = false, volume = 0.6;
+
+const bgmAudio = $("#bgmAudio"), paperAudio = $("#paperAudio");
+const volumeSlider = $("#volumeSlider"), bgmToggle = $("#bgmToggle");
+bgmAudio.volume = volume; paperAudio.volume = volume;
+volumeSlider.oninput = () => { volume = volumeSlider.value; bgmAudio.volume = volume; paperAudio.volume = volume; };
+bgmToggle.onclick = () => { bgmAudio.paused ? bgmAudio.play().catch(()=>{}) : bgmAudio.pause(); };
+
+window.addEventListener("load", () => {
+  const tryPlay = () => { if (bgmAudio.paused) bgmAudio.play().catch(()=>{}); };
+  tryPlay();
+  document.addEventListener("click", tryPlay, { once: true });
+});
+
+function changeScene(id) {
+  sceneList.forEach(sid => $("#"+sid).classList.remove("active"));
+  $("#"+id).classList.add("active");
+  currentSceneIndex = sceneList.indexOf(id);
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+async function typeWrite(dom, text, cursorDom, cb) {
+  if (typingLock) return;
+  typingLock = true;
+  dom.innerText = "";
+  cursorDom.style.display = "inline-block";
+  for (let i = 0; i < text.length; i++) {
+    dom.innerText += text[i];
+    await sleep(CONFIG.typeSpeed);
+  }
+  cursorDom.style.display = "none";
+  typingLock = false;
+  if (cb) cb();
+}
+
+/* 场景0 暗号 */
+const secretInput = $("#secretInput"), secretBtn = $("#secretBtn"), secretTip = $("#secretTip");
+secretBtn.onclick = () => {
+  if (secretInput.value.trim() === CONFIG.secretCode) {
+    secretTip.innerText = "暗号正确 ✨";
+    bgmAudio.play().catch(()=>{});
+    setTimeout(() => { changeScene("scene1"); loadAlbum(); }, 600);
+  } else {
+    secretTip.innerText = "暗号不对，再想想我们之间的秘密";
+    secretInput.style.animation = "shake 0.4s";
+    setTimeout(() => secretInput.style.animation = "", 400);
+  }
+};
+secretInput.addEventListener("keydown", e => { if (e.key === "Enter") secretBtn.click(); });
+
+/* 场景1 相册 */
+const albumImg = $("#albumImg"), albumComment = $("#albumComment"), albumCursor = $("#albumCursor"), albumNext = $("#albumNext");
+function loadAlbum() {
+  const item = CONFIG.albumList[albumIndex];
+  albumImg.src = item.img;
+  albumComment.innerText = "";
+  typeWrite(albumComment, item.comment, albumCursor);
+  albumNext.innerText = albumIndex >= CONFIG.albumList.length - 1 ? "前往花海" : "Next";
+}
+albumNext.onclick = () => {
+  if (typingLock) return;
+  albumIndex++;
+  if (albumIndex >= CONFIG.albumList.length) { changeScene("scene2"); loadLetter(); return; }
+  loadAlbum();
+};
+
+/* 场景2 情书 */
+const letterText = $("#letterText"), letterCursor = $("#letterCursor"), letterNext = $("#letterNext");
+function loadLetter() { letterText.innerText = ""; typeWrite(letterText, CONFIG.letterText, letterCursor); }
+letterNext.onclick = () => { if (typingLock) return; changeScene("scene3"); loadQuestion(); };
+
+/* 场景3 选择题+弹窗 */
+const qTitle = $("#qTitle"), optA = $("#optA"), optB = $("#optB"), qProgress = $("#qProgress");
+const mask = $("#mask"), popBox = $("#popBox"), popText = $("#popText"), popCursor = $("#popCursor");
+const popClose = $("#popClose"), popNext = $("#popNext"), shineLight = $("#shineLight");
+
+function loadQuestion() {
+  const q = CONFIG.questionList[qIndex];
+  qTitle.innerText = q.title;
+  optA.innerText = q.optA;
+  optB.innerText = q.optB;
+  qProgress.innerText = `第 ${qIndex+1} 题 / 共 ${CONFIG.questionList.length} 题`;
+}
+
+async function openPop(text) {
+  paperAudio.currentTime = 0;
+  paperAudio.play().catch(()=>{});
+  mask.classList.add("show");
+  popBox.classList.add("show");
+  popBox.classList.remove("hide");
+  popText.innerText = "";
+  shineLight.classList.remove("active");
+  await typeWrite(popText, text, popCursor, () => shineLight.classList.add("active"));
+}
+optA.onclick = () => openPop(CONFIG.questionList[qIndex].textA);
+optB.onclick = () => openPop(CONFIG.questionList[qIndex].textB);
+
+popClose.onclick = () => {
+  popBox.classList.add("hide"); popBox.classList.remove("show");
+  setTimeout(() => mask.classList.remove("show"), 400);
+};
+popNext.onclick = () => {
+  popBox.classList.add("hide"); popBox.classList.remove("show");
+  setTimeout(() => {
+    mask.classList.remove("show");
+    qIndex++;
+    if (qIndex >= CONFIG.questionList.length) { changeScene("scene4"); loadPromise(); }
+    else loadQuestion();
+  }, 400);
+};
+mask.onclick = e => { if (e.target === mask) popClose.click(); };
+
+/* 场景4 星星约定 */
+const promiseListDom = $("#promiseList"), promiseNext = $("#promiseNext");
+async function loadPromise() {
+  promiseListDom.innerHTML = "";
+  for (let txt of CONFIG.promiseList) {
+    const div = document.createElement("div");
+    div.className = "promise-item";
+    div.innerText = txt;
+    promiseListDom.appendChild(div);
+    await sleep(600);
+    div.classList.add("show");
+  }
+}
+promiseNext.onclick = () => { changeScene("scene5"); loadTrack(); };
+
+/* 场景5 爱心轨迹 */
+const trackListDom = $("#trackList"), trackNext = $("#trackNext");
+function loadTrack() {
+  trackListDom.innerHTML = "";
+  CONFIG.trackList.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "track-node";
+    div.innerText = item.title;
+    div.onclick = () => openPop(item.content);
+    trackListDom.appendChild(div);
+  });
+}
+trackNext.onclick = () => { changeScene("scene6"); $("#finalWords").innerText = CONFIG.finalText; };
+
+/* 场景6 烟花 */
+$("#scene6").addEventListener("click", e => {
+  if (e.target.tagName === "BUTTON") return;
+  createFirework(e.clientX, e.clientY);
+});
+
+/* ==================== Canvas 粒子 ==================== */
+const canvasNebula = $("#canvasNebula"), ctxNebula = canvasNebula.getContext("2d");
+const canvasFlower = $("#canvasFlower"), ctxFlower = canvasFlower.getContext("2d");
+const canvasHeartParticle = $("#canvasHeartParticle"), ctxHeartParticle = canvasHeartParticle.getContext("2d");
+const canvasFirework = $("#canvasFirework"), ctxFirework = canvasFirework.getContext("2d");
+let W, H;
+function resizeCanvas() {
+  W = innerWidth; H = innerHeight;
+  [canvasNebula, canvasFlower, canvasHeartParticle, canvasFirework].forEach(c => { c.width = W; c.height = H; });
+}
+resizeCanvas();
+addEventListener("resize", resizeCanvas);
+
+class Star {
+  constructor() { this.reset(); }
+  reset() { this.x = Math.random()*W; this.y = Math.random()*H; this.r = Math.random()*1.2+0.2; this.speed = Math.random()*0.15+0.02; this.op = Math.random()*0.4+0.1; }
+  update() { this.y += this.speed; if (this.y > H) this.reset(); }
+  draw(ctx) { ctx.beginPath(); ctx.arc(this.x,this.y,this.r,0,Math.PI*2); ctx.fillStyle = `rgba(220,200,255,${this.op})`; ctx.fill(); }
+}
+let stars = Array.from({length:180}, () => new Star());
+
+/* ---- 爱心宇宙（原生Canvas 3D，替换原花海背景）---- */
+function _hxy(t, s) {
+  // 心形参数方程：x=16sin³t, y=13cost-5cos2t-2cos3t-cos4t
+  return [16*Math.pow(Math.sin(t),3)*s, (13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))*s];
+}
+// 中央大爱心：由密集光点汇聚成实心发光爱心
+const heartDots = [];
+const DOT_N = 620;
+for (let i = 0; i < DOT_N; i++) {
+  const t = Math.random()*Math.PI*2;
+  const shrink = Math.random();
+  const h = _hxy(t, 1 - 0.78*shrink); // 沿轮廓取点并向内部收缩，形成实心
+  heartDots.push({ tx: h[0], ty: h[1], tw: Math.random()*6.28 });
+}
+// 满屏星尘光点（上方稀疏彩色，下方密集如地面星尘）
+const dust = [];
+for (let i = 0; i < 300; i++) {
+  dust.push({ x: Math.random(), y: Math.random(), s: Math.random()*1.8+0.5, a: Math.random()*0.5+0.2, c: Math.random(), vy: Math.random()*0.004+0.001, tw: Math.random()*6.28 });
+}
+function drawUniverse(ctx) {
+  const cx = W/2, cy = H/2;
+  const now = performance.now()*0.001;
+  const scl = Math.min(W,H)*0.4/17;
+  const breath = 1 + 0.035*Math.sin(now*0.9); // 爱心整体呼吸
+  const sc = scl*breath;
+  // 中央发光爱心（光点汇聚 + 双层辉光）
+  for (let k = 0; k < heartDots.length; k++) {
+    const d = heartDots[k];
+    const px = cx + d.tx*sc;
+    const py = cy + d.ty*sc*0.92;
+    const flick = 0.6 + 0.4*Math.sin(d.tw + now*1.6); // 光点明暗闪烁
+    const size = 1.1 + 0.9*(0.4 + 0.6*flick);
+    ctx.fillStyle = `rgba(255,150,190,${0.18*flick})`;
+    ctx.beginPath(); ctx.arc(px, py, size*3.4, 0, 6.2832); ctx.fill();
+    ctx.fillStyle = `rgba(255,195,225,${0.9*flick})`;
+    ctx.beginPath(); ctx.arc(px, py, size, 0, 6.2832); ctx.fill();
+  }
+  // 星尘光点
+  for (let k = 0; k < dust.length; k++) {
+    const d = dust[k];
+    d.y += d.vy;
+    if (d.y > 1.02) { d.y = -0.02; d.x = Math.random(); }
+    const dx = d.x*W, dy = d.y*H;
+    const tw2 = 0.6 + 0.4*Math.sin(d.tw + now*1.2);
+    const col = d.c < 0.7 ? '255,255,255' : (d.c < 0.85 ? '140,200,255' : (d.c < 0.95 ? '255,170,170' : '190,160,255'));
+    ctx.fillStyle = `rgba(${col},${(0.15+0.55*tw2)*d.a})`;
+    ctx.beginPath(); ctx.arc(dx, dy, d.s*(0.6+tw2*0.7), 0, 6.2832); ctx.fill();
+  }
+}
+
+class Heart {
+  constructor() { this.reset(); }
+  reset() { this.x = Math.random()*W; this.y = H+20; this.s = Math.random()*9+4; this.sy = Math.random()*0.4+0.1; this.sx = (Math.random()-0.5)*0.2; this.op = Math.random()*0.35+0.1; }
+  update() { this.y -= this.sy; this.x += this.sx; if (this.y < -20) this.reset(); }
+  draw(ctx) {
+    ctx.save(); ctx.translate(this.x,this.y); ctx.fillStyle = `rgba(255,190,210,${this.op})`;
+    ctx.beginPath();
+    ctx.moveTo(0, this.s*0.3);
+    ctx.bezierCurveTo(-this.s*0.8, -this.s*0.4, -this.s, this.s*0.3, 0, this.s);
+    ctx.bezierCurveTo(this.s, this.s*0.3, this.s*0.8, -this.s*0.4, 0, this.s*0.3);
+    ctx.fill(); ctx.restore();
+  }
+}
+let hearts = Array.from({length:40}, () => new Heart());
+
+let shooting = { active:false, x:0, y:0, vx:0, vy:0, op:1 };
+let shootTimer = 0;
+function launchShoot() {
+  shooting.active = true;
+  shooting.x = Math.random()*W*0.6; shooting.y = Math.random()*H*0.4;
+  const ang = Math.PI/4 + Math.random()*0.3, sp = Math.random()*4+2;
+  shooting.vx = Math.cos(ang)*sp; shooting.vy = Math.sin(ang)*sp; shooting.op = 1;
+}
+function drawShoot(ctx) {
+  if (!shooting.active) return;
+  shooting.x += shooting.vx; shooting.y += shooting.vy; shooting.op -= 0.012;
+  if (shooting.op <= 0 || shooting.x > W || shooting.y > H) shooting.active = false;
+  ctx.beginPath(); ctx.moveTo(shooting.x, shooting.y);
+  ctx.lineTo(shooting.x - shooting.vx*10, shooting.y - shooting.vy*10);
+  ctx.strokeStyle = `rgba(220,220,255,${shooting.op})`; ctx.lineWidth = 1.8; ctx.stroke();
+}
+
+class FireP {
+  constructor(x,y,color,text) {
+    this.x=x; this.y=y; this.vx=(Math.random()-0.5)*7; this.vy=(Math.random()-0.5)*7;
+    this.a=1; this.decay=Math.random()*0.012+0.006; this.c=color; this.t=text; this.s=Math.random()*2+1;
+  }
+  update() { this.x+=this.vx; this.y+=this.vy; this.vy+=0.06; this.a-=this.decay; }
+  draw(ctx) {
+    ctx.save(); ctx.globalAlpha=this.a; ctx.fillStyle=this.c;
+    ctx.beginPath(); ctx.arc(this.x,this.y,this.s,0,Math.PI*2); ctx.fill();
+    if (this.t) { ctx.font = "bold 16px serif"; ctx.fillText(this.t, this.x, this.y); }
+    ctx.restore();
+  }
+}
+let fires = [];
+function createFirework(x,y) {
+  const txt = CONFIG.fireWords[Math.floor(Math.random()*CONFIG.fireWords.length)];
+  const colors = ["#ffd0e0","#f8c8e8","#e0c8ff","#fff0f6"];
+  const c = colors[Math.floor(Math.random()*colors.length)];
+  for (let i = 0; i < 120; i++) fires.push(new FireP(x,y,c,i<10?txt:null));
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  ctxNebula.clearRect(0,0,W,H); ctxFlower.clearRect(0,0,W,H);
+  ctxHeartParticle.clearRect(0,0,W,H); ctxFirework.clearRect(0,0,W,H);
+
+  stars.forEach(s => { s.update(); s.draw(ctxNebula); });
+
+  if (currentSceneIndex === 2) drawUniverse(ctxFlower);
+
+  if ([0,1,3,5,6].includes(currentSceneIndex)) {
+    const maxH = currentSceneIndex === 6 ? 90 : 40;
+    while (hearts.length < maxH) hearts.push(new Heart());
+    while (hearts.length > maxH) hearts.pop();
+    hearts.forEach(h => { h.update(); h.draw(ctxHeartParticle); });
+  }
+
+  if (currentSceneIndex === 4) {
+    shootTimer++;
+    if (shootTimer > 220 && !shooting.active) { launchShoot(); shootTimer = 0; }
+    drawShoot(ctxNebula);
+  }
+
+  if (currentSceneIndex === 6) {
+    for (let i = fires.length-1; i >= 0; i--) {
+      fires[i].update(); fires[i].draw(ctxFirework);
+      if (fires[i].a <= 0) fires.splice(i,1);
+    }
+  }
+}
+
+window.addEventListener("load", () => { animate(); loadQuestion(); });
+</script>
+</body>
+</html>
